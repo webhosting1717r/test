@@ -1,0 +1,24 @@
+---
+import { site } from '@config';
+import { loadContent, hubPath, type Route } from '@lib/site';
+interface Props { route: Route }
+const { route } = Astro.props;
+const { hubs } = await loadContent();
+const isCurrent = (path: string) => route.path === path || (path !== '/' && route.path.startsWith(path));
+---
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" href="/" aria-label={`${site.name} – ${site.strings.home}`} aria-current={route.path === '/' ? 'page' : undefined}>
+      <svg class="brand__mark" width="28" height="28" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M9 21.5 16 9l7 12.5H9Z" fill="var(--color-bg)"/></svg>
+      <span class="brand__name">{site.name}</span>
+    </a>
+    <nav class="main-nav" aria-label={site.strings.mainNav}>
+      <ul>
+        {hubs.map((h) => {
+          const p = hubPath(h);
+          return <li><a href={p} aria-current={isCurrent(p) ? 'page' : undefined}>{h.data.navLabel ?? h.data.title}</a></li>;
+        })}
+      </ul>
+    </nav>
+  </div>
+</header>

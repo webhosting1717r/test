@@ -1,0 +1,42 @@
+---
+import { Font } from 'astro:assets';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import { site } from '@config';
+import type { Route } from '@lib/site';
+import type { ImageInfo } from '@lib/schema';
+import Seo from '@components/Seo.astro';
+import JsonLd from '@components/JsonLd.astro';
+import SpeculationRules from '@components/SpeculationRules.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+
+interface Props {
+  route: Route;
+  graph: Record<string, unknown>;
+  ogType?: 'website' | 'article' | 'profile';
+  image?: ImageInfo;
+  article?: { published: Date; modified: Date; authorName: string; section?: string };
+  alternates?: { hreflang: string; href: string }[];
+}
+const { route, graph, ogType, image, article, alternates } = Astro.props;
+---
+<!doctype html>
+<html lang={site.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <Seo route={route} ogType={ogType} image={image} article={article} alternates={alternates} />
+    <Font cssVariable="--font-sans" preload />
+    <JsonLd graph={graph} />
+    <SpeculationRules />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{site.strings.skipToContent}</a>
+    <Header route={route} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

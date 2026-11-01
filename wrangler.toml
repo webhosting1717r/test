@@ -1,0 +1,4 @@
+# Cloudflare Pages (Direct Upload of Git-integratie). Build: npm run build, output: dist.
+name = "seo-template"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "dist"

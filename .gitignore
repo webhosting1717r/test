@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.astro/
+.lighthouseci/
+.indexnow-state.json
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store

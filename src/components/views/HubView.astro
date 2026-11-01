@@ -1,0 +1,67 @@
+---
+import { Picture } from 'astro:assets';
+import { render } from 'astro:content';
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ArticleGrid from '@components/ArticleGrid.astro';
+import { loadContent, absoluteUrl, articlePath, type Route } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode, breadcrumbNode, itemListNode, imageNode } from '@lib/schema';
+import { socialImage } from '@lib/images';
+
+interface Props { route: Route }
+const { route } = Astro.props;
+const hub = route.hub!;
+const c = await loadContent();
+const articles = c.articlesByHub.get(hub.id) ?? [];
+const { Content } = await render(hub);
+
+const crumbs = [
+  { name: site.strings.home, url: absoluteUrl('/') },
+  { name: hub.data.navLabel ?? hub.data.title, url: route.url },
+];
+const image = hub.data.image ? await socialImage(hub.data.image, hub.data.imageAlt) : undefined;
+const items = articles.map((a) => ({ url: absoluteUrl(articlePath(a, hub)), name: a.data.title }));
+
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({
+    url: route.url,
+    title: route.title,
+    description: route.description,
+    type: 'CollectionPage',
+    datePublished: hub.data.datePublished,
+    dateModified: route.lastmod,
+    image,
+    extra: { mainEntity: { '@id': `${route.url}#itemlist` } },
+  }),
+  image ? imageNode(route.url, image) : undefined,
+  breadcrumbNode(route.url, crumbs),
+  itemListNode(route.url, items),
+]);
+---
+<Base route={route} graph={jsonld} image={image} alternates={hub.data.alternates}>
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <header class="page-header">
+      <h1>{hub.data.title}</h1>
+      <p class="lede">{hub.data.description}</p>
+      {hub.data.image && (
+        <figure class="hero-image">
+          <Picture src={hub.data.image} alt={hub.data.imageAlt ?? ''} formats={['avif', 'webp']} widths={[640, 960, 1280, 1600]} sizes="(min-width: 72rem) 72rem, 100vw" width={1600} height={900} layout="constrained" priority />
+        </figure>
+      )}
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+    <section class="section" aria-labelledby="hub-articles">
+      <div class="section__head">
+        <h2 id="hub-articles">{site.strings.articlesInHub}</h2>
+        <p class="muted">{articles.length} {articles.length === 1 ? 'artikel' : 'artikelen'}</p>
+      </div>
+      {articles.length ? <ArticleGrid articles={articles} showHub={false} /> : <p>{site.strings.noArticles}</p>}
+    </section>
+  </div>
+</Base>

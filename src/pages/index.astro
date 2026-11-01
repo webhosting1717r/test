@@ -1,0 +1,52 @@
+---
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import HubCard from '@components/HubCard.astro';
+import ArticleGrid from '@components/ArticleGrid.astro';
+import { buildRoutes, loadContent, sitemapPath } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode } from '@lib/schema';
+
+const routes = await buildRoutes();
+const route = routes.find((r) => r.kind === 'home')!;
+const c = await loadContent();
+const latest = c.articles.slice(0, site.seo.homeLatestCount);
+
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({
+    url: route.url,
+    title: route.title,
+    description: route.description,
+    dateModified: route.lastmod,
+    hasBreadcrumb: false,
+    extra: { about: { '@id': `${site.url}/#organization` } },
+  }),
+]);
+---
+<Base route={route} graph={jsonld}>
+  <header class="page-header page-header--hero">
+    <div class="container">
+      <h1>{site.tagline}</h1>
+      <p class="lede">{site.description}</p>
+    </div>
+  </header>
+  <div class="container">
+    <section class="section" aria-labelledby="home-topics">
+      <div class="section__head">
+        <h2 id="home-topics">{site.strings.allTopics}</h2>
+        <a href={sitemapPath()}>{site.strings.htmlSitemap}</a>
+      </div>
+      <ul class="grid grid--3">
+        {c.hubs.map((h) => <li><HubCard hub={h} /></li>)}
+      </ul>
+    </section>
+    <section class="section" aria-labelledby="home-latest">
+      <div class="section__head">
+        <h2 id="home-latest">{site.strings.latest}</h2>
+        {site.feeds.rss && <a href="/rss.xml" type="application/rss+xml">{site.strings.rssFeed}</a>}
+      </div>
+      <ArticleGrid articles={latest} firstPriority />
+    </section>
+  </div>
+</Base>

@@ -1,0 +1,39 @@
+---
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import { loadContent, hubPath, sitemapPath, absoluteUrl, type Route } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode } from '@lib/schema';
+
+const c = await loadContent();
+const route: Route = {
+  kind: 'page',
+  path: '/404/',
+  url: absoluteUrl('/404/'),
+  canonical: absoluteUrl('/404/'),
+  title: `${site.strings.notFoundTitle} (404)${site.titleSeparator}${site.name}`,
+  description: site.strings.notFoundText,
+  lastmod: new Date(0),
+  indexable: false,
+};
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({ url: route.url, title: route.title, description: route.description, hasBreadcrumb: false }),
+]);
+---
+<Base route={route} graph={jsonld}>
+  <div class="container">
+    <header class="page-header">
+      <h1>{site.strings.notFoundTitle}</h1>
+      <p class="lede">{site.strings.notFoundText}</p>
+    </header>
+    <p><a class="button" href="/">{site.strings.backHome}</a></p>
+    <section class="section" aria-labelledby="nf-topics">
+      <h2 id="nf-topics">{site.strings.allTopics}</h2>
+      <ul class="link-list">
+        {c.hubs.map((h) => <li><a href={hubPath(h)}>{h.data.title}</a><span class="muted">{h.data.description}</span></li>)}
+        <li><a href={sitemapPath()}>{site.strings.htmlSitemap}</a></li>
+      </ul>
+    </section>
+  </div>
+</Base>

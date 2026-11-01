@@ -1,0 +1,22 @@
+---
+/**
+ * Declaratieve prefetch van interne links (Speculation Rules API): 0 KB JS.
+ * 'moderate' = prefetch bij hover/focus/touchstart; geen XML/feeds/externe links.
+ */
+const rules = {
+  prefetch: [
+    {
+      where: {
+        and: [
+          { href_matches: '/*' },
+          { not: { href_matches: '/*.xml' } },
+          { not: { href_matches: '/*.txt' } },
+          { not: { selector_matches: '[rel~=nofollow]' } },
+        ],
+      },
+      eagerness: 'moderate',
+    },
+  ],
+};
+---
+<script type="speculationrules" is:inline set:html={JSON.stringify(rules)} />

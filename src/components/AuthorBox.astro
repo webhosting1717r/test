@@ -1,0 +1,16 @@
+---
+import { Image } from 'astro:assets';
+import { site } from '@config';
+import { authorPath, type Author } from '@lib/site';
+interface Props { author: Author }
+const { author } = Astro.props;
+---
+<aside class="author-box" aria-label={`${site.strings.byAuthor} ${author.data.name}`}>
+  {author.data.image && (
+    <Image src={author.data.image} alt={author.data.imageAlt ?? author.data.name} width={64} height={64} layout="fixed" loading="lazy" />
+  )}
+  <div>
+    <p><strong><a href={authorPath(author)}>{author.data.name}</a></strong>{author.data.jobTitle && <span class="muted"> · {author.data.jobTitle}</span>}</p>
+    <p class="muted">{author.data.description}</p>
+  </div>
+</aside>

@@ -1,0 +1,126 @@
+---
+import { Picture } from 'astro:assets';
+import { render } from 'astro:content';
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ArticleGrid from '@components/ArticleGrid.astro';
+import AuthorBox from '@components/AuthorBox.astro';
+import { loadContent, absoluteUrl, hubPath, authorPath, formatDate, readingMinutes, relatedArticles, type Route } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode, breadcrumbNode, articleNode, personNode, imageNode, ids } from '@lib/schema';
+import { socialImage, schemaImages } from '@lib/images';
+
+interface Props { route: Route }
+const { route } = Astro.props;
+const article = route.article!;
+const hub = route.hub!;
+const c = await loadContent();
+const author = c.authorById.get(article.data.author.id)!;
+const { Content, headings } = await render(article);
+const toc = headings.filter((h) => h.depth === 2);
+const related = relatedArticles(c, article);
+const authorUrl = absoluteUrl(authorPath(author));
+const minutes = readingMinutes(article.body);
+const wordCount = (article.body ?? '').split(/\s+/).filter(Boolean).length;
+
+const crumbs = [
+  { name: site.strings.home, url: absoluteUrl('/') },
+  { name: hub.data.navLabel ?? hub.data.title, url: absoluteUrl(hubPath(hub)) },
+  { name: article.data.title, url: route.url },
+];
+
+const image = article.data.image ? await socialImage(article.data.image, article.data.imageAlt) : undefined;
+const articleImages = article.data.image ? await schemaImages(article.data.image) : undefined;
+
+const articleJson = articleNode({
+  url: route.url,
+  headline: article.data.title,
+  description: article.data.description,
+  datePublished: article.data.datePublished,
+  dateModified: article.data.dateModified,
+  authorUrl,
+  image,
+  section: hub.data.title,
+  wordCount,
+});
+if (articleImages) articleJson.image = articleImages;
+
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({
+    url: route.url,
+    title: route.title,
+    description: route.description,
+    datePublished: article.data.datePublished,
+    dateModified: article.data.dateModified,
+    image,
+    extra: { mainEntity: { '@id': ids.article(route.url) } },
+  }),
+  image ? imageNode(route.url, image) : undefined,
+  breadcrumbNode(route.url, crumbs),
+  articleJson,
+  personNode({
+    url: authorUrl,
+    name: author.data.name,
+    description: author.data.description,
+    jobTitle: author.data.jobTitle,
+    sameAs: author.data.sameAs,
+  }),
+]);
+---
+<Base
+  route={route}
+  graph={jsonld}
+  ogType="article"
+  image={image}
+  article={{ published: article.data.datePublished, modified: article.data.dateModified, authorName: author.data.name, section: hub.data.title }}
+  alternates={article.data.alternates}
+>
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <article>
+      <header class="page-header">
+        <p class="card__kicker"><a href={hubPath(hub)}>{hub.data.navLabel ?? hub.data.title}</a></p>
+        <h1>{article.data.title}</h1>
+        <p class="lede">{article.data.description}</p>
+        <p class="meta">
+          <span>{site.strings.byAuthor} <a href={authorPath(author)} rel="author">{author.data.name}</a></span>
+          <span>{site.strings.published} <time datetime={article.data.datePublished.toISOString().slice(0, 10)}>{formatDate(article.data.datePublished)}</time></span>
+          {article.data.dateModified.getTime() !== article.data.datePublished.getTime() && (
+            <span>{site.strings.updated} <time datetime={article.data.dateModified.toISOString().slice(0, 10)}>{formatDate(article.data.dateModified)}</time></span>
+          )}
+          <span>{site.strings.readingTime}: {minutes} {site.strings.minutes}</span>
+        </p>
+        {article.data.image && (
+          <figure class="hero-image">
+            <Picture src={article.data.image} alt={article.data.imageAlt ?? ''} formats={['avif', 'webp']} widths={[640, 960, 1280, 1600]} sizes="(min-width: 72rem) 72rem, 100vw" width={1600} height={900} layout="constrained" priority />
+          </figure>
+        )}
+      </header>
+      <div class="article-layout">
+        <div class="prose">
+          <Content />
+          <AuthorBox author={author} />
+        </div>
+        {toc.length > 1 && (
+          <nav class="toc" aria-labelledby="toc-heading">
+            <h2 id="toc-heading">{site.strings.tableOfContents}</h2>
+            <ol>
+              {toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
+            </ol>
+          </nav>
+        )}
+      </div>
+    </article>
+    {related.length > 0 && (
+      <section class="section" aria-labelledby="related-heading">
+        <div class="section__head">
+          <h2 id="related-heading">{site.strings.related}</h2>
+          <a href={hubPath(hub)}>{site.strings.moreIn} {(hub.data.navLabel ?? hub.data.title).toLowerCase()}</a>
+        </div>
+        <ArticleGrid articles={related} />
+      </section>
+    )}
+  </div>
+</Base>

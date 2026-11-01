@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Trailing-slash-conventie: /pad → /pad/ (301). Netlify's pretty URLs doen dit standaard
+# voor map-indexen; expliciet aanzetten voorkomt verrassingen.
+[build.processing]
+  skip_processing = true
+
+# Headers en redirects komen uit public/_headers en public/_redirects (gegenereerd).

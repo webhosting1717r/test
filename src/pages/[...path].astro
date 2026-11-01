@@ -1,0 +1,25 @@
+---
+/**
+ * Eén router voor alle content-pagina's. De routetabel (src/lib/site.ts) bepaalt de
+ * URL's, zodat padsegmenten uit site.config.ts komen en niet uit bestandsnamen.
+ */
+import type { GetStaticPaths } from 'astro';
+import { buildRoutes, type Route } from '@lib/site';
+import HubView from '@components/views/HubView.astro';
+import ArticleView from '@components/views/ArticleView.astro';
+import AuthorView from '@components/views/AuthorView.astro';
+import PageView from '@components/views/PageView.astro';
+import SitemapView from '@components/views/SitemapView.astro';
+
+export const getStaticPaths = (async () => {
+  const routes = await buildRoutes();
+  return routes
+    .filter((r) => r.kind !== 'home')
+    .map((r) => ({ params: { path: r.path.replace(/^\/|\/$/g, '') }, props: { route: r } }));
+}) satisfies GetStaticPaths;
+
+interface Props { route: Route }
+const { route } = Astro.props;
+const View = { hub: HubView, article: ArticleView, author: AuthorView, page: PageView, sitemap: SitemapView, home: PageView }[route.kind];
+---
+<View route={route} />

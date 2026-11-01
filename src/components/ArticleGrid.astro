@@ -1,0 +1,11 @@
+---
+import ArticleCard from './ArticleCard.astro';
+import type { Article } from '@lib/site';
+interface Props { articles: Article[]; firstPriority?: boolean; showHub?: boolean; columns?: 2 | 3 }
+const { articles, firstPriority = false, showHub = true, columns = 3 } = Astro.props;
+---
+<ul class:list={['grid', { 'grid--3': columns === 3 }]}>
+  {articles.map((a, i) => (
+    <li><ArticleCard article={a} priority={firstPriority && i === 0} showHub={showHub} /></li>
+  ))}
+</ul>

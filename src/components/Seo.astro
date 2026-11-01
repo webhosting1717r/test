@@ -1,0 +1,84 @@
+---
+/**
+ * Centrale <head>-SEO: titel, description, canonical, robots, Open Graph, Twitter,
+ * hreflang, feeds, icons en manifest. Wordt uitsluitend via Base.astro gebruikt.
+ */
+import { site } from '@config';
+import type { Route } from '@lib/site';
+import { absoluteUrl } from '@lib/site';
+import type { ImageInfo } from '@lib/schema';
+
+interface Props {
+  route: Route;
+  ogType?: 'website' | 'article' | 'profile';
+  image?: ImageInfo;
+  article?: { published: Date; modified: Date; authorName: string; section?: string };
+  /** Per-pagina hreflang-alternates (absolute URL's). */
+  alternates?: { hreflang: string; href: string }[];
+}
+
+const { route, ogType = 'website', image, article, alternates = [] } = Astro.props;
+
+const title = route.title;
+const description = route.description;
+const canonical = route.canonical;
+const robots = route.indexable || route.canonical !== route.url
+  ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+  : 'noindex, follow';
+
+const ogImage: ImageInfo = image ?? {
+  url: absoluteUrl(site.defaultImage.src),
+  width: site.defaultImage.width,
+  height: site.defaultImage.height,
+  alt: site.defaultImage.alt,
+};
+
+// Hreflang: site-brede alternates (zelfde pad op een andere taalsite) + per-pagina alternates.
+const siteWide = (site.alternates ?? []).map((a) => ({ hreflang: a.hreflang, href: new URL(route.path, a.url + '/').toString() }));
+const hreflangs = [...siteWide, ...alternates];
+if (hreflangs.length) {
+  hreflangs.unshift({ hreflang: site.lang, href: canonical });
+  hreflangs.push({ hreflang: 'x-default', href: canonical });
+}
+---
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta name="robots" content={robots} />
+{hreflangs.map((h) => <link rel="alternate" hreflang={h.hreflang} href={h.href} />)}
+
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content={site.name} />
+<meta property="og:locale" content={site.locale} />
+<meta property="og:url" content={canonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={ogImage.url} />
+<meta property="og:image:width" content={String(ogImage.width)} />
+<meta property="og:image:height" content={String(ogImage.height)} />
+{ogImage.alt && <meta property="og:image:alt" content={ogImage.alt} />}
+{article && (
+  <>
+    <meta property="article:published_time" content={article.published.toISOString()} />
+    <meta property="article:modified_time" content={article.modified.toISOString()} />
+    <meta property="article:author" content={article.authorName} />
+    {article.section && <meta property="article:section" content={article.section} />}
+  </>
+)}
+
+<meta name="twitter:card" content="summary_large_image" />
+{site.twitterSite && <meta name="twitter:site" content={site.twitterSite} />}
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage.url} />
+{ogImage.alt && <meta name="twitter:image:alt" content={ogImage.alt} />}
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content={site.theme.light} />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content={site.theme.dark} />
+<meta name="color-scheme" content="light dark" />
+<link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+{site.feeds.rss && <link rel="alternate" type="application/rss+xml" title={`${site.name} ${site.strings.rssFeed}`} href="/rss.xml" />}

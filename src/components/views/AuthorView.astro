@@ -1,0 +1,79 @@
+---
+import { Image, getImage } from 'astro:assets';
+import { render } from 'astro:content';
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ArticleGrid from '@components/ArticleGrid.astro';
+import { loadContent, absoluteUrl, type Route } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode, breadcrumbNode, personNode, imageNode, ids } from '@lib/schema';
+import { socialImage } from '@lib/images';
+
+interface Props { route: Route }
+const { route } = Astro.props;
+const author = route.author!;
+const c = await loadContent();
+const articles = c.articlesByAuthor.get(author.id) ?? [];
+const { Content } = await render(author);
+const crumbs = [
+  { name: site.strings.home, url: absoluteUrl('/') },
+  { name: author.data.name, url: route.url },
+];
+const image = author.data.image ? await socialImage(author.data.image, author.data.imageAlt ?? author.data.name) : undefined;
+const personImage = author.data.image
+  ? { url: absoluteUrl((await getImage({ src: author.data.image, width: 400, height: 400, format: 'jpg', fit: 'cover' })).src), width: 400, height: 400 }
+  : undefined;
+
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({
+    url: route.url,
+    title: route.title,
+    description: route.description,
+    type: 'ProfilePage',
+    dateModified: route.lastmod,
+    image,
+    extra: { mainEntity: { '@id': ids.person(route.url) } },
+  }),
+  image ? imageNode(route.url, image) : undefined,
+  breadcrumbNode(route.url, crumbs),
+  personNode({
+    url: route.url,
+    name: author.data.name,
+    description: author.data.description,
+    jobTitle: author.data.jobTitle,
+    sameAs: author.data.sameAs,
+    image: personImage,
+  }),
+]);
+---
+<Base route={route} graph={jsonld} ogType="profile" image={image} alternates={author.data.alternates}>
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <header class="page-header author-header">
+      {author.data.image && (
+        <Image src={author.data.image} alt={author.data.imageAlt ?? author.data.name} width={96} height={96} layout="fixed" priority class="author-header__img" />
+      )}
+      <div>
+        <h1>{author.data.title}</h1>
+        <p class="lede">{author.data.description}</p>
+        {author.data.sameAs.length > 0 && (
+          <ul class="meta author-header__links">
+            {author.data.sameAs.map((u) => <li><a href={u} rel="me noopener">{new URL(u).hostname.replace(/^www\./, '')}</a></li>)}
+          </ul>
+        )}
+      </div>
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+    <section class="section" aria-labelledby="author-articles">
+      <div class="section__head">
+        <h2 id="author-articles">{site.strings.articlesBy} {author.data.name}</h2>
+        <p class="muted">{articles.length} {articles.length === 1 ? 'artikel' : 'artikelen'}</p>
+      </div>
+      {articles.length ? <ArticleGrid articles={articles} /> : <p>{site.strings.noArticles}</p>}
+    </section>
+  </div>
+</Base>

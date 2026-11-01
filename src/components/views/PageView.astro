@@ -1,0 +1,58 @@
+---
+import { render } from 'astro:content';
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { absoluteUrl, type Route } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode, breadcrumbNode, ids } from '@lib/schema';
+
+interface Props { route: Route }
+const { route } = Astro.props;
+const page = route.page!;
+const { Content } = await render(page);
+const crumbs = [
+  { name: site.strings.home, url: absoluteUrl('/') },
+  { name: page.data.navLabel ?? page.data.title, url: route.url },
+];
+const typeByKind = { about: 'AboutPage', contact: 'ContactPage', legal: 'WebPage', generic: 'WebPage' } as const;
+const o = site.organization;
+
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({
+    url: route.url,
+    title: route.title,
+    description: route.description,
+    type: typeByKind[page.data.kind],
+    datePublished: page.data.datePublished,
+    dateModified: page.data.dateModified,
+    extra: page.data.kind === 'about' || page.data.kind === 'contact' ? { mainEntity: { '@id': ids.organization() } } : undefined,
+  }),
+  breadcrumbNode(route.url, crumbs),
+]);
+---
+<Base route={route} graph={jsonld} alternates={page.data.alternates}>
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <header class="page-header">
+      <h1>{page.data.title}</h1>
+      <p class="lede">{page.data.description}</p>
+      {page.data.kind === 'legal' && (
+        <p class="meta"><span>{site.strings.updated} <time datetime={page.data.dateModified.toISOString().slice(0, 10)}>{new Intl.DateTimeFormat(site.lang, { dateStyle: 'long' }).format(page.data.dateModified)}</time></span></p>
+      )}
+    </header>
+    <div class="prose">
+      <Content />
+      {page.data.kind === 'contact' && (
+        <dl class="contact-list">
+          <dt>{o.name}</dt>
+          <dd>{o.legalName}</dd>
+          {o.email && <><dt>E-mail</dt><dd><a href={`mailto:${o.email}`}>{o.email}</a></dd></>}
+          {o.telephone && <><dt>Telefoon</dt><dd><a href={`tel:${o.telephone.replace(/\s+/g, '')}`}>{o.telephone}</a></dd></>}
+          {o.address && <><dt>Adres</dt><dd>{[o.address.streetAddress, `${o.address.postalCode ?? ''} ${o.address.addressLocality ?? ''}`.trim(), o.address.addressCountry].filter(Boolean).join(', ')}</dd></>}
+        </dl>
+      )}
+    </div>
+  </div>
+</Base>

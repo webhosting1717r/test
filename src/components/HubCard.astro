@@ -1,0 +1,12 @@
+---
+import { loadContent, hubPath, type Hub } from '@lib/site';
+interface Props { hub: Hub }
+const { hub } = Astro.props;
+const c = await loadContent();
+const count = (c.articlesByHub.get(hub.id) ?? []).length;
+---
+<article class="card card--hub">
+  <h3 class="card__title"><a href={hubPath(hub)}>{hub.data.title}</a></h3>
+  <p class="card__excerpt">{hub.data.description}</p>
+  <p class="count">{count} {count === 1 ? 'artikel' : 'artikelen'}</p>
+</article>

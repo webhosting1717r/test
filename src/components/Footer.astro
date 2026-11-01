@@ -1,0 +1,40 @@
+---
+import { site } from '@config';
+import { loadContent, hubPath, pagePath, sitemapPath } from '@lib/site';
+const { hubs, pages } = await loadContent();
+const year = new Date().getFullYear();
+const legal = pages.filter((p) => p.data.kind === 'legal');
+const other = pages.filter((p) => p.data.kind !== 'legal');
+---
+<footer class="site-footer">
+  <div class="container site-footer__grid">
+    <section class="site-footer__col" aria-labelledby="footer-topics">
+      <h2 id="footer-topics" class="site-footer__heading">{site.strings.allTopics}</h2>
+      <ul>
+        {hubs.map((h) => <li><a href={hubPath(h)}>{h.data.navLabel ?? h.data.title}</a></li>)}
+      </ul>
+    </section>
+    <nav class="site-footer__col" aria-label={site.strings.footerNav}>
+      <h2 class="site-footer__heading">{site.name}</h2>
+      <ul>
+        {other.map((p) => <li><a href={pagePath(p)}>{p.data.navLabel ?? p.data.title}</a></li>)}
+        <li><a href={sitemapPath()}>{site.strings.htmlSitemap}</a></li>
+        {site.feeds.rss && <li><a href="/rss.xml" type="application/rss+xml">{site.strings.rssFeed}</a></li>}
+      </ul>
+    </nav>
+    <section class="site-footer__col" aria-labelledby="footer-legal">
+      <h2 id="footer-legal" class="site-footer__heading">{site.strings.legal}</h2>
+      <ul>
+        {legal.map((p) => <li><a href={pagePath(p)}>{p.data.navLabel ?? p.data.title}</a></li>)}
+      </ul>
+      {site.organization.sameAs.length > 0 && (
+        <ul class="site-footer__social">
+          {site.organization.sameAs.map((s) => <li><a href={s.url} rel="me noopener">{s.label}</a></li>)}
+        </ul>
+      )}
+    </section>
+  </div>
+  <div class="container site-footer__meta">
+    <p>© {year} {(site.organization.legalName ?? site.organization.name).replace(/\.$/, '')}. {site.tagline}.</p>
+  </div>
+</footer>

@@ -1,0 +1,48 @@
+---
+import { site } from '@config';
+import Base from '@layouts/Base.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { loadContent, absoluteUrl, hubPath, articlePath, authorPath, pagePath, formatDate, type Route } from '@lib/site';
+import { graph, organizationNode, websiteNode, webPageNode, breadcrumbNode } from '@lib/schema';
+
+interface Props { route: Route }
+const { route } = Astro.props;
+const c = await loadContent();
+const crumbs = [
+  { name: site.strings.home, url: absoluteUrl('/') },
+  { name: site.strings.htmlSitemap, url: route.url },
+];
+const jsonld = graph([
+  organizationNode(),
+  websiteNode(),
+  webPageNode({ url: route.url, title: route.title, description: route.description, type: 'CollectionPage', dateModified: route.lastmod }),
+  breadcrumbNode(route.url, crumbs),
+]);
+---
+<Base route={route} graph={jsonld}>
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <header class="page-header">
+      <h1>{site.strings.htmlSitemap}</h1>
+      <p class="lede">{site.strings.htmlSitemapIntro}</p>
+    </header>
+    {c.hubs.map((hub) => (
+      <section class="sitemap-group" aria-labelledby={`sm-${hub.id}`}>
+        <h2 id={`sm-${hub.id}`}><a href={hubPath(hub)}>{hub.data.title}</a></h2>
+        <ul>
+          {(c.articlesByHub.get(hub.id) ?? []).map((a) => (
+            <li><a href={articlePath(a, hub)}>{a.data.title}</a> <span class="muted">({formatDate(a.data.dateModified)})</span></li>
+          ))}
+        </ul>
+      </section>
+    ))}
+    <section class="sitemap-group" aria-labelledby="sm-authors">
+      <h2 id="sm-authors">{site.strings.authors}</h2>
+      <ul>{c.authors.map((a) => <li><a href={authorPath(a)}>{a.data.name}</a></li>)}</ul>
+    </section>
+    <section class="sitemap-group" aria-labelledby="sm-pages">
+      <h2 id="sm-pages">{site.strings.pages}</h2>
+      <ul>{c.pages.map((p) => <li><a href={pagePath(p)}>{p.data.title}</a></li>)}</ul>
+    </section>
+  </div>
+</Base>

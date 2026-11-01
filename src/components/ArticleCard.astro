@@ -1,0 +1,49 @@
+---
+import { Picture } from 'astro:assets';
+import { site } from '@config';
+import { loadContent, articlePath, authorPath, hubPath, formatDate, readingMinutes, type Article } from '@lib/site';
+
+interface Props {
+  article: Article;
+  /** true voor de eerste zichtbare kaart: eager + fetchpriority=high (LCP-kandidaat). */
+  priority?: boolean;
+  showHub?: boolean;
+  headingLevel?: 'h2' | 'h3';
+}
+const { article, priority = false, showHub = true, headingLevel = 'h3' } = Astro.props;
+const c = await loadContent();
+const hub = c.hubById.get(article.data.category.id)!;
+const author = c.authorById.get(article.data.author.id)!;
+const href = articlePath(article, hub);
+const Heading = headingLevel;
+const minutes = readingMinutes(article.body);
+---
+<article class="card">
+  {article.data.image && (
+    <div class="card__media">
+      <Picture
+        src={article.data.image}
+        alt={article.data.imageAlt ?? ''}
+        formats={['avif', 'webp']}
+        widths={[400, 640, 800]}
+        sizes="(min-width: 64em) 24rem, (min-width: 40em) 50vw, 100vw"
+        width={800}
+        height={450}
+        layout="constrained"
+        priority={priority}
+      />
+    </div>
+  )}
+  <div class="card__body">
+    {showHub && <p class="card__kicker"><a href={hubPath(hub)}>{hub.data.navLabel ?? hub.data.title}</a></p>}
+    <Heading class="card__title"><a href={href}>{article.data.title}</a></Heading>
+    <p class="card__excerpt">{article.data.description}</p>
+    <p class="card__meta">
+      <a href={authorPath(author)}>{author.data.name}</a>
+      <span aria-hidden="true">·</span>
+      <time datetime={article.data.dateModified.toISOString().slice(0, 10)}>{formatDate(article.data.dateModified)}</time>
+      <span aria-hidden="true">·</span>
+      <span>{minutes} {site.strings.minutes} {site.strings.readingTime.toLowerCase()}</span>
+    </p>
+  </div>
+</article>
